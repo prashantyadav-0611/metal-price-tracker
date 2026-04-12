@@ -2,8 +2,8 @@ name: Daily Scraper
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # runs daily (11:30 AM India)
-  workflow_dispatch:       # manual run button
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 jobs:
   scrape:
@@ -12,6 +12,11 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
     - name: Install Chrome
       run: |
@@ -23,8 +28,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run scraper
-      run: |
-        python scraper.py
+      run: python scraper.py
 
     - name: Commit updated DB
       run: |
