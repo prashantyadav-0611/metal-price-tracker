@@ -1,7 +1,7 @@
 # Metal Price Tracker
 
 ## 🚀 Live App
-[Your Streamlit Link]
+https://metal-price-tracker.streamlit.app/
 
 ## 📊 Features
 - Daily automated scraping of metal prices
