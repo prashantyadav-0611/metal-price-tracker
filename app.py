@@ -2,14 +2,18 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 
+# ─────────────────────────────────────────────
 #  PAGE CONFIG
+# ─────────────────────────────────────────────
 st.set_page_config(
     page_title="Metal Price Tracker",
     page_icon="⚜️",
     layout="wide",
 )
 
+# ─────────────────────────────────────────────
 #  GLOBAL STYLES
+# ─────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
@@ -304,7 +308,9 @@ div[data-testid="stRadio"] span[data-baseweb="radio"] {
 """, unsafe_allow_html=True)
 
 
+# ─────────────────────────────────────────────
 #  DATA
+# ─────────────────────────────────────────────
 conn = sqlite3.connect("metals.db")
 df = pd.read_sql("SELECT * FROM metals", conn)
 conn.close()
@@ -321,7 +327,9 @@ if "selected_metal" not in st.session_state:
     st.session_state.selected_metal = metals[0]
 
 
+# ─────────────────────────────────────────────
 #  HERO
+# ─────────────────────────────────────────────
 st.markdown("""
 <div class="hero-wrap">
     <div class="hero-eyebrow">⚜ &nbsp; Live Market Intelligence</div>
@@ -330,11 +338,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ─────────────────────────────────────────────
 #  METAL CONFIG
+# ─────────────────────────────────────────────
 METAL_META = {
-    "Gold": {
+    "Gold 24K": {
         "icon": "🥇",
-        "label": "Gold",
+        "label": "Gold 24K",
         "desc": "Pure bullion",
         "accent": "#c39b50",
     },
@@ -359,19 +369,21 @@ METAL_META = {
 }
 
 
+# ─────────────────────────────────────────────
 #  METAL SELECTOR
+# ─────────────────────────────────────────────
 st.markdown('<div class="section-label">Select Commodity</div>', unsafe_allow_html=True)
 
 cols = st.columns(len(metals), gap="medium")
 for i, metal in enumerate(metals):
-    m = METAL_META.get(metal, {"icon": "", "label": metal, "desc": ""})
+    m = METAL_META.get(metal, {"icon": "⬜", "label": metal, "desc": ""})
     with cols[i]:
         label = f"{m['icon']}\n{m['label']}\n{m['desc'].upper()}"
         if st.button(label, key=f"btn_{metal}", use_container_width=True):
             st.session_state.selected_metal = metal
 
 selected_metal = st.session_state.selected_metal
-meta = METAL_META.get(selected_metal, {"icon": "", "label": selected_metal, "desc": "", "accent": "#c39b50"})
+meta = METAL_META.get(selected_metal, {"icon": "⬜", "label": selected_metal, "desc": "", "accent": "#c39b50"})
 
 st.markdown(f"""
 <div style="margin-top:16px">
@@ -382,7 +394,9 @@ st.markdown(f"""
 st.divider()
 
 
+# ─────────────────────────────────────────────
 #  FILTER
+# ─────────────────────────────────────────────
 filtered = df[df["metal"] == selected_metal].sort_values("date")
 latest = filtered.iloc[-1]
 min_row = filtered.loc[filtered["price"].idxmin()]
@@ -401,7 +415,9 @@ if len(filtered) >= 2:
     price_change = f'<span style="color:{price_change_color};font-size:13px">{sign} ₹{abs(diff):,.0f} ({pct:+.2f}% today)</span>'
 
 
+# ─────────────────────────────────────────────
 #  METRICS
+# ─────────────────────────────────────────────
 st.markdown('<div class="section-label">Market Overview</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns(3, gap="large")
@@ -440,7 +456,9 @@ with c3:
 st.divider()
 
 
+# ─────────────────────────────────────────────
 #  VIEW TOGGLE
+# ─────────────────────────────────────────────
 view = st.radio("View Mode", ["📈  Price Chart", "📋  Historical Data"], horizontal=True, label_visibility="collapsed")
 
 st.markdown("")
@@ -451,28 +469,47 @@ if "Chart" in view:
 
     chart_df = filtered[["date", "price"]].copy()
 
+    # Decide tick count based on date range
+    date_range_days = (chart_df["date"].max() - chart_df["date"].min()).days
+    if date_range_days <= 30:
+        tick_count = "week"
+        date_fmt = "%d %b"
+    elif date_range_days <= 180:
+        tick_count = "month"
+        date_fmt = "%d %b"
+    else:
+        tick_count = "month"
+        date_fmt = "%b '%y"
+
     line = alt.Chart(chart_df).mark_line(
         color="#c39b50",
         strokeWidth=2.5,
         interpolate="monotone",
     ).encode(
         x=alt.X("date:T", axis=alt.Axis(
-            format="%b %Y",
+            format=date_fmt,
+            tickCount=tick_count,
             tickColor="#2a3a4a",
             gridColor="#1a2a3a",
-            labelColor="#4a5a6a",
+            labelColor="#8a9ab0",
             titleColor="#4a5a6a",
+            labelAngle=-40,
+            labelFontSize=11,
+            labelPadding=8,
+            title="",
         )),
         y=alt.Y("price:Q", axis=alt.Axis(
             format=",.0f",
             tickColor="#2a3a4a",
             gridColor="#1a2a3a",
-            labelColor="#4a5a6a",
+            labelColor="#8a9ab0",
             titleColor="#4a5a6a",
+            titleFontSize=11,
+            labelFontSize=11,
             title="Price (₹/gm)",
         )),
         tooltip=[
-            alt.Tooltip("date:T", title="Date", format="%-d %B %Y"),
+            alt.Tooltip("date:T", title="Date", format="%d %B %Y"),
             alt.Tooltip("price:Q", title="Price (₹)", format=",.2f"),
         ],
     )
@@ -500,9 +537,9 @@ if "Chart" in view:
     ).encode(x="date:T", y="price:Q")
 
     chart = (area + line + points).properties(
-        height=340,
+        height=360,
         background="transparent",
-        padding={"left": 8, "right": 8, "top": 16, "bottom": 8},
+        padding={"left": 8, "right": 8, "top": 16, "bottom": 24},
     ).configure_view(
         strokeWidth=0,
         fill="transparent",
@@ -530,7 +567,9 @@ else:
     st.dataframe(table_df, use_container_width=True, hide_index=True, height=420)
 
 
+# ─────────────────────────────────────────────
 #  FOOTER
+# ─────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;padding:48px 0 24px;font-family:'DM Sans',sans-serif;
 font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#2a3a4a">
